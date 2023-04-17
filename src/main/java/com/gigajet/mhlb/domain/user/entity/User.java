@@ -1,12 +1,12 @@
 package com.gigajet.mhlb.domain.user.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.gigajet.mhlb.domain.user.dto.GoogleOAuthRequestDto;
 import com.gigajet.mhlb.domain.user.dto.UserRequestDto;
+import com.gigajet.mhlb.domain.user.social.SocialType;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.util.List;
 
 @Entity(name = "users")
 @Getter
@@ -25,25 +25,36 @@ public class User {
     @Column(nullable = false)
     private String username;
 
-    @Column(nullable = false)
     private String description;
 
-    @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false)
     private String job;
 
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL,orphanRemoval = true)
-//    @JsonIgnoreProperties("User")
-//    private List<WorkspaceUser> workspaceUsers;
+    private SocialType type;
 
-    public User(UserRequestDto.Register registerDto, String password) {
-        this.image = registerDto.getUserImage();
+    @Column(nullable = false)
+    private Boolean isShow;
+
+    public User(UserRequestDto.Register registerDto, String password, String image) {
+        this.image = image;
         this.email = registerDto.getEmail();
         this.username = registerDto.getUserName();
         this.description = registerDto.getUserDesc();
         this.password = password;
         this.job = registerDto.getUserJob();
+        this.isShow = true;
+    }
+
+    public User(GoogleOAuthRequestDto.GoogleUser googleUserDto) {
+        this.image = googleUserDto.getPicture();
+        this.email = googleUserDto.getEmail();
+        this.username = googleUserDto.getName();
+        this.type = SocialType.GOOGLE;
+        this.isShow = true;
+    }
+
+    public void resetPassword(String password) {
+        this.password = password;
     }
 }
