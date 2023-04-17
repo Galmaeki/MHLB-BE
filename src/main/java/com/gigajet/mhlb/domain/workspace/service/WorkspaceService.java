@@ -1,8 +1,5 @@
 package com.gigajet.mhlb.domain.workspace.service;
 
-import com.gigajet.mhlb.global.common.dto.SendMessageDto;
-import com.gigajet.mhlb.global.common.util.S3Handler;
-import com.gigajet.mhlb.global.common.util.SuccessCode;
 import com.gigajet.mhlb.domain.alarm.Entity.Alarm;
 import com.gigajet.mhlb.domain.alarm.Repository.AlarmRepository;
 import com.gigajet.mhlb.domain.status.entity.Status;
@@ -11,11 +8,14 @@ import com.gigajet.mhlb.domain.user.entity.User;
 import com.gigajet.mhlb.domain.workspace.dto.WorkspaceRequestDto;
 import com.gigajet.mhlb.domain.workspace.dto.WorkspaceResponseDto;
 import com.gigajet.mhlb.domain.workspace.entity.Workspace;
-import com.gigajet.mhlb.domain.workspace.repository.WorkspaceRepository;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceOrder;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceUser;
 import com.gigajet.mhlb.domain.workspace.repository.WorkspaceOrderRepository;
+import com.gigajet.mhlb.domain.workspace.repository.WorkspaceRepository;
 import com.gigajet.mhlb.domain.workspace.repository.WorkspaceUserRepository;
+import com.gigajet.mhlb.global.common.dto.SendMessageDto;
+import com.gigajet.mhlb.global.common.util.S3Handler;
+import com.gigajet.mhlb.global.common.util.SuccessCode;
 import com.gigajet.mhlb.global.exception.CustomException;
 import com.gigajet.mhlb.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
 
 import static com.gigajet.mhlb.domain.workspace.entity.WorkspaceUserRole.ADMIN;
 
@@ -132,7 +135,7 @@ public class WorkspaceService {
             if (Objects.equals(workspaceUser.getUser().getId(), user.getId())) {
                 continue;
             }
-            Status status = statusRepository.findTopByUserOrderByUpdateDayDescUpdateTimeDesc(workspaceUser.getUser());
+            Status status = statusRepository.findStatusByUser(workspaceUser.getUser());
             peopleList.add(new WorkspaceResponseDto.People(status));
         }
 
@@ -143,7 +146,7 @@ public class WorkspaceService {
             return Integer.compare(o1.getColor(), o2.getColor());
         });
 
-        peopleList.add(0, new WorkspaceResponseDto.People(statusRepository.findTopByUserOrderByUpdateDayDescUpdateTimeDesc(user)));//본인이 가장 먼저 나오게 해야함
+        peopleList.add(0, new WorkspaceResponseDto.People(statusRepository.findStatusByUser(user)));//본인이 가장 먼저 나오게 해야함
 
         return peopleList;
     }
