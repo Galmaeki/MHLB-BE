@@ -5,6 +5,7 @@ import com.gigajet.mhlb.domain.workspace.entity.Workspace;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceInvite;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceUserRole;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 public class WorkspaceResponseDto {
@@ -76,6 +77,7 @@ public class WorkspaceResponseDto {
 
     @Schema(description = "워크스페이스 초대 DTO")
     @Getter
+    @AllArgsConstructor
     public static class Invite {
         @Schema(description = "WorkspaceUser id", example = "1")
         private final Long inviteId;

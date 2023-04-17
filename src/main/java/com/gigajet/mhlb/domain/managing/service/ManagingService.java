@@ -165,7 +165,7 @@ public class ManagingService {
             workspaceOrderRepository.findByWorkspaceUserAndIsShow(workspaceUser, true).orElseThrow(() -> new CustomException(ErrorCode.WRONG_USER)).offIsShow();
         }
 
-        workspaceInviteRepository.deleteByWorkspace(manager.getWorkspace());
+        workspaceInviteRepository.deleteQueryByWorkspace(manager.getWorkspace());
 
         return ResponseEntity.ok(SendMessageDto.builder().message("ok").build());
     }
@@ -174,8 +174,7 @@ public class ManagingService {
     public WorkspaceInvite invite(User user, Long id, String invitedUserEmail) {
         Workspace workspace = validateWorkspace(id);
         checkRole(user, workspace);
-
-        Optional<WorkspaceInvite> checkInvite = workspaceInviteRepository.findByEmailAndWorkspace(invitedUserEmail, workspace);
+        Optional<WorkspaceInvite> checkInvite = workspaceInviteRepository.findOptionalByEmailAndWorkspace(invitedUserEmail, workspace);
         // 기존에 초대 한 사람인지 확인
         if (checkInvite.isPresent()) {
             throw new CustomException(ErrorCode.ALREADY_INVITED);
@@ -204,12 +203,7 @@ public class ManagingService {
         Workspace workspace = validateWorkspace(id);
         checkRole(user, workspace);
 
-        List<WorkspaceResponseDto.Invite> inviteList = new ArrayList<>();
-        List<WorkspaceInvite> workspaceInviteList = workspaceInviteRepository.findByWorkspaceOrderByIdDesc(workspace);
-
-        for (WorkspaceInvite workspaceInvite : workspaceInviteList) {
-            inviteList.add(new WorkspaceResponseDto.Invite(workspaceInvite));
-        }
+        List<WorkspaceResponseDto.Invite> inviteList = workspaceInviteRepository.findInviteListByWorkspace(workspace);
 
         return inviteList;
     }
@@ -219,10 +213,9 @@ public class ManagingService {
         Workspace workspace = validateWorkspace(id);
         checkRole(user, workspace);
 
-        WorkspaceInvite workspaceInvite = workspaceInviteRepository.findByWorkspace_IdAndId(id, inviteId).orElseThrow(() -> new CustomException(ErrorCode.WRONG_USER));
+        WorkspaceInvite workspaceInvite = workspaceInviteRepository.findInviteByUserIdAndId(id, inviteId).orElseThrow(() -> new CustomException(ErrorCode.WRONG_USER));
         User inviteUser = workspaceInvite.getUser();
         workspaceInviteRepository.deleteById(inviteId);
-
         if (inviteUser != null && workspaceInviteRepository.countByEmail(user.getEmail()) == 0) {
             redisTemplate.convertAndSend("workspaceInviteAlarmMessageChannel", new WorkspaceInviteAlarmResponseDto.ConvertWorkspaceInviteAlarm(false, inviteUser.getId()));
         }
