@@ -1,17 +1,17 @@
 package com.gigajet.mhlb.domain.status.service;
 
-import com.gigajet.mhlb.domain.status.entity.StatusEnum;
-import com.gigajet.mhlb.domain.workspace.entity.Workspace;
-import com.gigajet.mhlb.domain.workspace.repository.WorkspaceRepository;
-import com.gigajet.mhlb.global.common.dto.SendMessageDto;
-import com.gigajet.mhlb.global.common.util.SuccessCode;
 import com.gigajet.mhlb.domain.status.dto.StatusResponseDto;
 import com.gigajet.mhlb.domain.status.entity.Status;
+import com.gigajet.mhlb.domain.status.entity.StatusEnum;
 import com.gigajet.mhlb.domain.status.repository.StatusRepository;
 import com.gigajet.mhlb.domain.user.entity.User;
 import com.gigajet.mhlb.domain.user.repository.UserRepository;
+import com.gigajet.mhlb.domain.workspace.entity.Workspace;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceUser;
+import com.gigajet.mhlb.domain.workspace.repository.WorkspaceRepository;
 import com.gigajet.mhlb.domain.workspace.repository.WorkspaceUserRepository;
+import com.gigajet.mhlb.global.common.dto.SendMessageDto;
+import com.gigajet.mhlb.global.common.util.SuccessCode;
 import com.gigajet.mhlb.global.exception.CustomException;
 import com.gigajet.mhlb.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +47,7 @@ public class StatusService {
         List<WorkspaceUser> byWorkspaceId = workspaceUserRepository.findByWorkspaceAndIsShow(workspace, true);
 
         for (WorkspaceUser workspaceUser : byWorkspaceId) {
-            responseDto.add(new StatusResponseDto.StatusInfo(statusRepository.findTopByUserOrderByUpdateDayDescUpdateTimeDesc(workspaceUser.getUser())));
+            responseDto.add(new StatusResponseDto.StatusInfo(statusRepository.findStatusByUser(workspaceUser.getUser())));
         }
 
         return responseDto;
@@ -64,14 +64,14 @@ public class StatusService {
 
     @Transactional(readOnly = true)
     public StatusResponseDto.StatusInfo myStatus(User user) {
-        return new StatusResponseDto.StatusInfo(statusRepository.findTopByUserOrderByUpdateDayDescUpdateTimeDesc(user));
+        return new StatusResponseDto.StatusInfo(statusRepository.findStatusByUser(user));
     }
 
     @Transactional
     public void SocketStatusUpdate(String statusName, StompHeaderAccessor accessor) {
         User user = userRepository.findById(Long.valueOf(accessor.getFirstNativeHeader("userId"))).orElseThrow();
 
-        StatusEnum beforeStatusEnum = statusRepository.findTopByUserOrderByUpdateDayDescUpdateTimeDesc(user).getStatus();
+        StatusEnum beforeStatusEnum = statusRepository.findStatusEnumByUser(user);
         log.info(beforeStatusEnum.getStatus());
 
         StatusEnum changeStatusEnum = StatusEnum.valueOfStatus(statusName).orElseThrow();

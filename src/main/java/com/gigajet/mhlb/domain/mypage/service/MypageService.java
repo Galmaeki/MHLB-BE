@@ -1,21 +1,20 @@
 package com.gigajet.mhlb.domain.mypage.service;
 
 import com.gigajet.mhlb.domain.alarm.dto.WorkspaceInviteAlarmResponseDto;
-import com.gigajet.mhlb.global.common.dto.SendMessageDto;
-import com.gigajet.mhlb.global.common.util.S3Handler;
-import com.gigajet.mhlb.global.common.util.SuccessCode;
 import com.gigajet.mhlb.domain.mypage.dto.MypageResponseDto;
 import com.gigajet.mhlb.domain.user.entity.User;
 import com.gigajet.mhlb.domain.user.repository.UserRepository;
 import com.gigajet.mhlb.domain.workspace.entity.Workspace;
-import com.gigajet.mhlb.domain.workspace.repository.WorkspaceRepository;
-import com.gigajet.mhlb.domain.workspace.entity.WorkspaceInvite;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceOrder;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceUser;
 import com.gigajet.mhlb.domain.workspace.entity.WorkspaceUserRole;
 import com.gigajet.mhlb.domain.workspace.repository.WorkspaceInviteRepository;
 import com.gigajet.mhlb.domain.workspace.repository.WorkspaceOrderRepository;
+import com.gigajet.mhlb.domain.workspace.repository.WorkspaceRepository;
 import com.gigajet.mhlb.domain.workspace.repository.WorkspaceUserRepository;
+import com.gigajet.mhlb.global.common.dto.SendMessageDto;
+import com.gigajet.mhlb.global.common.util.S3Handler;
+import com.gigajet.mhlb.global.common.util.SuccessCode;
 import com.gigajet.mhlb.global.exception.CustomException;
 import com.gigajet.mhlb.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -55,15 +54,10 @@ public class MypageService {
 
     @Transactional(readOnly = true)
     public MypageResponseDto.AllList findWorkspaceInfo(User user) {
-        List<MypageResponseDto.InviteList> inviteLists = new ArrayList<>();
-        List<WorkspaceInvite> workspaceInviteList = workspaceInviteRepository.findAllByEmail(user.getEmail());
+        List<MypageResponseDto.InviteList> inviteLists = workspaceInviteRepository.findMyPageListByEmail(user.getEmail());
 
         List<MypageResponseDto.WorkspaceList> workspaceLists = new ArrayList<>();
         List<WorkspaceUser> workspaceUsers = workspaceUserRepository.findByUserAndIsShowTrueOrderByRoleDesc(user);
-
-        for (WorkspaceInvite workspaceInvite : workspaceInviteList) {
-            inviteLists.add(new MypageResponseDto.InviteList(workspaceInvite.getWorkspace()));
-        }
 
         for (WorkspaceUser workspaceUser : workspaceUsers) {
             workspaceLists.add(new MypageResponseDto.WorkspaceList(workspaceUser.getWorkspace(), workspaceUser.getWorkspaceOrder().getWorkspaceUser()));
@@ -117,7 +111,7 @@ public class MypageService {
     @Transactional
     public ResponseEntity<SendMessageDto> acceptWorkspaceInvite(User user, long workspaceId) {
         Workspace workspace = validateWorkspace(workspaceId);
-        workspaceInviteRepository.findByEmailAndWorkspace(user.getEmail(), workspace).orElseThrow(() -> new CustomException(ErrorCode.WRONG_WORKSPACE_ID));
+        workspaceInviteRepository.findOptionalByEmailAndWorkspace(user.getEmail(), workspace).orElseThrow(() -> new CustomException(ErrorCode.WRONG_WORKSPACE_ID));
 
         Optional<WorkspaceUser> alreadyExist = workspaceUserRepository.findByUserAndWorkspaceAndIsShow(user, workspace, true);
 
@@ -125,9 +119,7 @@ public class MypageService {
             alreadyExist.get().onIsShow();
             workspaceOrderRepository.findByWorkspaceUserAndIsShow(alreadyExist.get(), false).orElseThrow(() -> new CustomException(ErrorCode.WRONG_USER)).onIsShow();
 
-            workspaceInviteRepository.deleteByEmailAndWorkspace(user.getEmail(), workspace);
-
-            workspaceInviteRepository.deleteByEmailAndWorkspace(user.getEmail(), workspace);
+            workspaceInviteRepository.deleteQueryByEmailAndWorkspace(user.getEmail(), workspace);
 
             if (workspaceInviteRepository.countByEmail(user.getEmail()) == 0) {
                 redisTemplate.convertAndSend("workspaceInviteAlarmMessageChannel", new WorkspaceInviteAlarmResponseDto.ConvertWorkspaceInviteAlarm(false, user.getId()));
@@ -144,7 +136,7 @@ public class MypageService {
             workspaceUserRepository.save(workspaceUser);
             workspaceOrderRepository.save(workspaceOrder);
 
-            workspaceInviteRepository.deleteByEmailAndWorkspace(user.getEmail(), workspace);
+            workspaceInviteRepository.deleteQueryByEmailAndWorkspace(user.getEmail(), workspace);
 
             if (workspaceInviteRepository.countByEmail(user.getEmail()) == 0) {
                 redisTemplate.convertAndSend("workspaceInviteAlarmMessageChannel", new WorkspaceInviteAlarmResponseDto.ConvertWorkspaceInviteAlarm(false, user.getId()));
@@ -158,8 +150,8 @@ public class MypageService {
     public ResponseEntity<SendMessageDto> rejectWorkspaceInvite(User user, long workspaceId) {
         Workspace workspace = validateWorkspace(workspaceId);
 
-        workspaceInviteRepository.findByEmailAndWorkspace(user.getEmail(), workspace).orElseThrow(() -> new CustomException(ErrorCode.WRONG_WORKSPACE_ID));
-        workspaceInviteRepository.deleteByEmailAndWorkspace(user.getEmail(), workspace);
+        workspaceInviteRepository.findOptionalByEmailAndWorkspace(user.getEmail(), workspace).orElseThrow(() -> new CustomException(ErrorCode.WRONG_WORKSPACE_ID));
+        workspaceInviteRepository.deleteQueryByEmailAndWorkspace(user.getEmail(), workspace);
 
         if (workspaceInviteRepository.countByEmail(user.getEmail()) == 0) {
             redisTemplate.convertAndSend("workspaceInviteAlarmMessageChannel", new WorkspaceInviteAlarmResponseDto.ConvertWorkspaceInviteAlarm(false, user.getId()));
