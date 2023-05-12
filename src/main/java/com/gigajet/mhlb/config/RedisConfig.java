@@ -30,7 +30,10 @@ public class RedisConfig {
 
     /**
      * redis의 pub/sub 기능을 이용하기 위해 MessageListener 설정 추가
-     * 메시지 발행이 오면 Listener가 처리함
+     * chatMessageChannel : 대화중인 채팅 메시지 관리 토픽
+     * statusMessageChannel : 상태 변경 관리 토픽
+     * chatAlarmMessageChannel : 읽지 않은 메시지 관리 토픽
+     * workspaceInviteAlarmMessageChannel : 새 워크스페이스 초대 토픽
      */
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
